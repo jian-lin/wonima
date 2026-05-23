@@ -1,0 +1,51 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  nix-flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - &checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - &install-nix
+        uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes pipe-operators
+      - run: nix flake check
+  collect-things-to-build:
+    name: collect things to build
+    runs-on: ubuntu-latest
+    outputs:
+      things: ${{ steps.collect.outputs.things }}
+    steps:
+      - *checkout
+      - *install-nix
+      - id: collect
+        run: |
+          things=$(nix eval --json '.#packages.x86_64-linux' --apply builtins.attrNames)
+          echo "things=$things" >> "$GITHUB_OUTPUT"
+  build:
+    name: build ${{ matrix.thing-to-build }}
+    runs-on: ubuntu-latest
+    needs: collect-things-to-build
+    strategy:
+      matrix:
+        thing-to-build: ${{ fromJSON(needs.collect-things-to-build.outputs.things) }}
+    steps:
+      - *checkout
+      - *install-nix
+      - run: nix build -L ".#$thing"
+        env:
+          thing: ${{ matrix.thing-to-build }}
