@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: 2026 Lin Jian <me@linj.tech>
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: CI
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions: {}
+env:
+  NIX_ABORT_ON_WARN: 1
+jobs:
+  nix-flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - &install-nix
+        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes pipe-operators
+      - run: nix flake check --all-systems
+  generate-build-matrix:
+    name: generate a build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate.outputs.matrix }}
+    steps:
+      - *checkout
+      - *install-nix
+      - id: generate
+        run: |
+          matrix=$(nix eval --json .#ci.matrix)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+  build:
+    name: build ${{ matrix.system }}.${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    needs: generate-build-matrix
+    strategy:
+      matrix: ${{ fromJSON(needs.generate-build-matrix.outputs.matrix) }}
+    steps:
+      - *checkout
+      - *install-nix
+      - run: nix build --print-build-logs .#"$attrPath"
+        env:
+          attrPath: ${{ matrix.attrPath }}

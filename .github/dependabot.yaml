@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Lin Jian <me@linj.tech>
+# SPDX-License-Identifier: GPL-3.0-or-later
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "cron"
+      cronjob: "21 8 * * *"
+      timezone: "Asia/Shanghai"
+    commit-message:
+      prefix: "chore"
+    groups:
+      actions:
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 7
