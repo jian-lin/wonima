@@ -1,5 +1,7 @@
+{ thisFeature }:
+
+{ options, ... }:
+
 {
-  elisp = ''
-  '';
-  order = -1000;
+  order = options.features.valueMeta.attrs.${thisFeature}.configuration.options.order.default - 1000;
 }
