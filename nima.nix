@@ -10,6 +10,7 @@ emacs:
     final: prev:
     let
       wonimaPackages = {
+        kitty-keyboard-protocol = mkEpkg { pname = "kitty-keyboard-protocol"; };
       };
       mkEpkg =
         {
