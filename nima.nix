@@ -7,6 +7,7 @@ emacs:
 
 {
   package = emacs;
+  earlyDefaultEl.elisp = lib.readFile ./early-init.el;
   pedantic = true;
 
   overlay =
