@@ -18,6 +18,7 @@
           final.mkNima {
             module = { config, ... }: {
               package = emacs;
+              earlyDefaultEl.elisp = lib.readFile ./early-init.el;
               pedantic = true;
               overlay = import ./package-overlay.nix {
                 inherit (final) lib;
